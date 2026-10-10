@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Elasticidad, Esfuerzo y Deformación | UCCuyo</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- KaTeX for high-fidelity LaTeX rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #f7f9f6;
+      color: #1e293b;
+    }
+    /* Paleta Institucional Verde Oliva UCCuyo */
+    .text-accent { color: #436600; }
+    .bg-accent { background-color: #436600; }
+    .bg-accent-hover:hover { background-color: #324d00; }
+    .bg-accent-light { background-color: #f1f6eb; }
+    .border-accent { border-color: #436600; }
+
+    .text-primary { color: #436600; }
+    .bg-primary { background-color: #436600; }
+    .bg-primary-dark { background-color: #324d00; }
+    .border-primary { border-color: #436600; }
+    
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .bg-physics-canvas {
+      background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800">
+
+  <!-- Toast Notification System -->
+  <div id="toastBox" class="fixed top-20 right-4 z-50 flex items-center gap-3 bg-white border border-gray-200 px-4 py-3 rounded-2xl shadow-xl pointer-events-none opacity-0 transition-opacity duration-300">
+    <span id="toastIcon" class="text-lg">📢</span>
+    <span id="toastMessage" class="text-xs font-semibold text-gray-800">Notificación activa</span>
+  </div>
+
+  <!-- Cabecera Institucional UCCuyo -->
+  <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-xl shadow-md">
+          F
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-gray-800 tracking-wide uppercase">FÍSICA MÉDICA Y BIOMECÁNICA</h1>
+          <p class="text-xs text-gray-500 font-semibold">PreMédico (Facultad de Cs. Médicas - UCCuyo)</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        
+        <!-- Botón Guía de Uso -->
+        <button onclick="openTutorial()" class="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded-lg shadow-sm hover:opacity-90 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Guía de Uso
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal con Menú Lateral -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col lg:flex-row gap-6">
+    
+    <!-- Menú de Navegación Lateral Oficial -->
+    <nav class="w-full lg:w-64 flex flex-row lg:flex-col gap-2 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto lg:overflow-x-visible whitespace-nowrap lg:whitespace-normal sticky top-20 h-fit">
+      <button onclick="switchTab('mod1')" id="tab-mod1" class="tab-btn bg-accent text-white flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-semibold transition shadow-sm flex items-center gap-2.5">
+        <i class="fa-solid fa-arrows-up-down text-sm w-4 text-center"></i>
+        <span>1. Rígido vs Deformable</span>
+      </button>
+      <button onclick="switchTab('mod2')" id="tab-mod2" class="tab-btn text-gray-700 hover:bg-gray-100 flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2.5">
+        <i class="fa-solid fa-compress text-sm w-4 text-center"></i>
+        <span>2. Compresión Volumétrica</span>
+      </button>
+      <button onclick="switchTab('mod3')" id="tab-mod3" class="tab-btn text-gray-700 hover:bg-gray-100 flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2.5">
+        <i class="fa-solid fa-arrows-split-up-and-left text-sm w-4 text-center"></i>
+        <span>3. Cizalladura y Corte</span>
+      </button>
+      <button onclick="switchTab('mod4')" id="tab-mod4" class="tab-btn text-gray-700 hover:bg-gray-100 flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2.5">
+        <i class="fa-solid fa-chart-line text-sm w-4 text-center"></i>
+        <span>4. Curva Esfuerzo-Deformación</span>
+      </button>
+    </nav>
+
+    <!-- Área Dinámica de Trabajo (Módulos 1 al 4) -->
+    <div class="flex-1 w-full min-w-0">
+
+      <!-- ========================================================================= -->
+      <!-- MÓDULO 1: SÓLIDO RÍGIDO VS DEFORMABLE & TRACCIÓN AXIAL (YOUNG) -->
+      <!-- ========================================================================= -->
+      <section id="mod1-content" class="module-section space-y-6">
+        
+        <!-- Banner de Encabezado de Módulo -->
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
+              Módulo 1: Transición del Modelo de Cuerpo Rígido al Deformable
+            </h2>
+            <p class="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+              En Estática se idealiza el <strong>cuerpo rígido</strong> ($Delta L = 0$ ante cualquier carga externa para satisfacer $sum ec{F}=ec{0}$). En la realidad física y biológica, toda fuerza externa genera distorsión elástica.
+            </p>
+          </div>
+          <!-- Conmutador Rígido vs Deformable -->
+          <div class="flex items-center gap-2 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+            <button id="btnModelRigid" onclick="setRigidMode(true)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+              Cuerpo Rígido (Teórico)
+            </button>
+            <button id="btnModelDeform" onclick="setRigidMode(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent text-white shadow-sm transition">
+              Cuerpo Deformable (Real)
+            </button>
+          </div>
+        </div>
+
+        <!-- Área de Trabajo Principal en 2 Columnas -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          
+          <!-- Columna Izquierda: Teoría, Parámetros y Métricas (5 cols) -->
+          <div class="xl:col-span-5 flex flex-col space-y-5">
+            
+            <!-- Tarjeta 1: Fundamento Teórico KaTeX -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                  <i class="fa-solid fa-graduation-cap"></i> Fundamento Físico-Matemático
+                </h3>
+                <span class="text-[11px] bg-accent-light text-accent px-2.5 py-0.5 rounded-full font-semibold border border-accent/20">Tracción Axial</span>
+              </div>
+              
+              <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center font-mono text-xs text-gray-800 space-y-2">
+                <div>$$sigma = rac{F_perp}{A} quad [	ext{Pa} = 	ext{N/m}^2]$$</div>
+                <div>$$epsilon = rac{Delta L}{L_0} quad [	ext{Adimensional}], quad Y = rac{sigma}{epsilon} = rac{F_perp / A}{Delta L / L_0}$$</div>
+              </div>
+            </div>
+
+            <!-- Tarjeta 2: Parámetros de Simulación -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Parámetros de Carga y Geometría
+              </h3>
+
+              <!-- Selección de Material -->
+              <div>
+                <label class="text-xs font-semibold text-gray-700 block mb-1.5">Material de Estudio / Biológico:</label>
+                <select id="m1MaterialSelect" onchange="changeM1Material()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-accent">
+                  <option value="bone">Hueso Compacto Humano (Y = 18 GPa)</option>
+                  <option value="tendon">Tendón de Aquiles (Y = 1.5 GPa)</option>
+                  <option value="collagen">Fibra de Colágeno (Y = 1.0 GPa)</option>
+                  <option value="steel" selected>Acero Quirúrgico 316L (Y = 200 GPa)</option>
+                  <option value="titanium">Titanio Ortopédico Ti-6Al-4V (Y = 110 GPa)</option>
+                  <option value="rubber">Elastómero / Goma (Y = 0.05 GPa)</option>
+                </select>
+              </div>
+
+              <!-- Slider Fuerza F_perp -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Fuerza Perpendicular ($F_perp$):</span>
+                  <span id="m1ForceVal" class="font-mono text-accent font-bold">2500 N</span>
+                </div>
+                <input type="range" id="m1ForceSlider" min="0" max="15000" step="50" value="2500" oninput="updateM1Simulation()" class="w-full accent-accent bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                  <span>0 N</span>
+                  <span>7,500 N</span>
+                  <span>15,000 N</span>
+                </div>
+              </div>
+
+              <!-- Calibre y Diámetro -->
+              <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-100 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-gray-700">Calibre / Diámetro del Cable ($d$):</span>
+                  <span id="m1DiamVal" class="font-mono text-amber-600 text-xs font-bold">4.0 mm</span>
+                </div>
+                <input type="range" id="m1DiamSlider" min="0.5" max="50" step="0.5" value="4.0" oninput="updateM1Simulation()" class="w-full accent-amber-600 bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                
+                <div class="flex gap-2 pt-1">
+                  <button onclick="setCaliberPreset(1.0)" class="flex-1 py-1 text-[11px] rounded-lg bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition font-medium">
+                    Hilo Fino ($1,	ext{mm}$)
+                  </button>
+                  <button onclick="setCaliberPreset(12.0)" class="flex-1 py-1 text-[11px] rounded-lg bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition font-medium">
+                    Barra ($12,	ext{mm}$)
+                  </button>
+                  <button onclick="setCaliberPreset(50.0)" class="flex-1 py-1 text-[11px] rounded-lg bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition font-medium">
+                    Pilar ($50,	ext{mm}$)
+                  </button>
+                </div>
+                <p class="text-[10px] text-gray-500 italic">
+                  *Nota didáctica: A igualdad de carga, el área $A = rac{pi d^2}{4}$ reduce el esfuerzo con el cuadrado del calibre.
+                </p>
+              </div>
+
+              <!-- Longitud Inicial L_0 -->
+              <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-100 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-gray-700">Longitud Inicial ($L_0$):</span>
+                  <span id="m1LengthVal" class="font-mono text-accent text-xs font-bold">1.50 m</span>
+                </div>
+                <input type="range" id="m1LengthSlider" min="0.2" max="10" step="0.1" value="1.5" oninput="updateM1Simulation()" class="w-full accent-accent bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                
+                <div class="border-t border-gray-200 pt-2 text-[10px] text-gray-600 space-y-0.5">
+                  <span class="font-bold text-gray-700 block">Dilema Conceptual de Escala Relativa:</span>
+                  <div>• $Delta L = 1,	ext{cm}$ en cable de $1,	ext{m} implies epsilon = 10^{-2}$ <span class="text-rose-600 font-semibold">(Gran deformación)</span></div>
+                  <div>• $Delta L = 1,	ext{cm}$ en cable de $1,	ext{km} implies epsilon = 10^{-5}$ <span class="text-emerald-600 font-semibold">(Ínfima alteración)</span></div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Tarjeta 3: Métricas Dinámicas -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-gauge-high text-accent"></i> Variables Dinámicas en Tiempo Real
+              </h3>
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Esfuerzo $sigma$</span>
+                  <span id="m1-disp-sigma" class="font-mono text-sm font-bold text-accent">0.00 MPa</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Deform. $epsilon$</span>
+                  <span id="m1-disp-epsilon" class="font-mono text-sm font-bold text-amber-600">0.0000</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Alargamiento $Delta L$</span>
+                  <span id="m1-disp-deltaL" class="font-mono text-sm font-bold text-emerald-700">0.000 mm</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Canvas Interactivo y Aplicación Clínica (7 cols) -->
+          <div class="xl:col-span-7 flex flex-col space-y-5">
+            
+            <!-- Tarjeta 4: Visor Gráfico Canvas -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                  <i class="fa-solid fa-desktop text-accent"></i> Banco de Ensayos Tensiles Axiales
+                </span>
+                <div id="m1-status-pill" class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-accent-light text-accent border border-accent/20 font-semibold">
+                  Régimen Elástico Lineal (Hooke)
+                </div>
+              </div>
+
+              <div class="relative w-full aspect-[4/3] bg-physics-canvas rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                <canvas id="canvasM1" class="w-full h-full block"></canvas>
+                <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300 shadow">
+                  Escala de deformación: <span class="text-amber-400 font-semibold" id="m1ScaleTag">1x Real</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tarjeta 5: Correlación Biomecánica y Clínica Médica -->
+            <div class="bg-accent-light border border-accent/20 rounded-2xl p-5 shadow-sm space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-accent flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope"></i> Correlación Biomecánica y Clínica Médica
+              </h3>
+              <p class="text-xs text-gray-700 leading-relaxed font-normal">
+                En el tendón de Aquiles y ligamentos cruzados, la deformación fisiológica reversible permite amortiguar impactos en la marcha y carrera. La transición de microdeformación elástica a sobredistensión con ruptura ocurre al exceder los límites de esfuerzo cortante o axial, justificando la alta incidencia de desgarros en atletas y ancianos con pérdida de colágeno elástico.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- MÓDULO 2: ESFUERZO VOLUMÉTRICO Y COMPRESIBILIDAD -->
+      <!-- ========================================================================= -->
+      <section id="mod2-content" class="module-section hidden space-y-6">
+        
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
+            Módulo 2: Esfuerzo de Compresión Volumétrica y Compresibilidad
+          </h2>
+          <p class="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">
+            Cuando un cuerpo se sumerge en un fluido a profundidad, experimenta fuerzas hidrostáticas perpendiculares uniformes en <em>todas</em> sus caras. El esfuerzo volumétrico equivale al cambio de presión uniforme $Delta p$, provocando una reducción de volumen $Delta V < 0$.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          
+          <!-- Columna Izquierda: Teoría, Controles y Métricas (5 cols) -->
+          <div class="xl:col-span-5 flex flex-col space-y-5">
+            
+            <!-- Fundamento Teórico -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                  <i class="fa-solid fa-graduation-cap"></i> Relaciones Volumétricas Fundamentales
+                </h3>
+                <span class="text-[11px] bg-accent-light text-accent px-2.5 py-0.5 rounded-full font-semibold border border-accent/20">Módulo B & k</span>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center font-mono text-xs text-gray-800 space-y-2">
+                <div>$$B = - rac{Delta p}{Delta V / V_0} quad [	ext{Pa}]$$</div>
+                <div>$$k = rac{1}{B} = - rac{Delta V / V_0}{Delta p} quad [	ext{Pa}^{-1} 	ext{ o } 	ext{m}^2/	ext{N}]$$</div>
+              </div>
+            </div>
+
+            <!-- Controles M2 -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Controles Hidrostáticos y Fluidos
+              </h3>
+
+              <div>
+                <label class="text-xs font-semibold text-gray-700 block mb-1.5">Material de la Muestra Sumergida:</label>
+                <select id="m2MaterialSelect" onchange="changeM2Material()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-accent">
+                  <option value="water">Agua Líquida ($B = 2.2 	imes 10^9,	ext{Pa}$)</option>
+                  <option value="lead">Plomo ($B = 7.7 	imes 10^{10},	ext{Pa}$)</option>
+                  <option value="steel">Acero Quirúrgico ($B = 16 	imes 10^{10},	ext{Pa}$)</option>
+                  <option value="plasma">Plasma Sanguíneo Humano ($B approx 2.1 	imes 10^9,	ext{Pa}$)</option>
+                  <option value="cortex">Hueso Esponjoso / Médula Ósea ($B approx 3.1 	imes 10^9,	ext{Pa}$)</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Incremento de Presión ($Delta p$):</span>
+                  <span id="m2PressureVal" class="font-mono text-accent font-bold">10.0 MPa</span>
+                </div>
+                <input type="range" id="m2PressureSlider" min="0" max="100" step="0.5" value="10" oninput="updateM2Simulation()" class="w-full accent-accent bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                  <span>0 MPa (Superficie)</span>
+                  <span>50 MPa</span>
+                  <span>100 MPa (~10 km fosa)</span>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Volumen Inicial ($V_0$):</span>
+                  <span id="m2VolVal" class="font-mono text-amber-600 font-bold">1.000 L</span>
+                </div>
+                <input type="range" id="m2VolSlider" min="0.1" max="5.0" step="0.1" value="1.0" oninput="updateM2Simulation()" class="w-full accent-amber-600 bg-gray-200 rounded-lg cursor-pointer h-1.5">
+              </div>
+
+              <div class="bg-accent-light/50 border border-accent/20 p-3 rounded-xl text-xs space-y-1">
+                <span class="font-bold text-accent block">💡 ¿Por qué el signo negativo en $B$?</span>
+                <p class="text-gray-600 text-[11px] leading-relaxed">
+                  Dado que un aumento de presión ($Delta p > 0$) siempre genera una contracción volumétrica ($Delta V < 0$), la relación $rac{Delta p}{Delta V}$ resulta negativa. Para que el módulo de compresibilidad $B$ sea siempre una magnitud positiva propia del material, se antepone formalmente el signo menos.
+                </p>
+              </div>
+            </div>
+
+            <!-- Métricas M2 -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-gauge-high text-accent"></i> Parámetros Hidrostáticos
+              </h3>
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Esfuerzo $Delta p$</span>
+                  <span id="m2-disp-dp" class="font-mono text-sm font-bold text-accent">0.00 MPa</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Deform. $Delta V/V_0$</span>
+                  <span id="m2-disp-epsV" class="font-mono text-sm font-bold text-amber-600">0.0000 %</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Módulo $B$</span>
+                  <span id="m2-disp-Bk" class="font-mono text-xs font-bold text-emerald-700">B = 2.2 GPa</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Canvas y Feedback (7 cols) -->
+          <div class="xl:col-span-7 flex flex-col space-y-5">
+            <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                  <i class="fa-solid fa-desktop text-accent"></i> Cámara de Inmersión Hidrostática
+                </span>
+                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-accent-light text-accent border border-accent/20 font-semibold">
+                  Presión Isótropa $ec{p}$
+                </span>
+              </div>
+
+              <div class="relative w-full aspect-[4/3] bg-physics-canvas rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                <canvas id="canvasM2" class="w-full h-full block"></canvas>
+                <div class="absolute top-3 left-3 bg-slate-900/90 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300">
+                  Profundidad agua: <span id="m2DepthEquiv" class="text-accent font-bold font-mono">0 m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-accent-light border border-accent/20 rounded-2xl p-5 shadow-sm space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-accent flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope"></i> Aplicación en Fisiología de Altura y Buceo
+              </h3>
+              <p class="text-xs text-gray-700 leading-relaxed font-normal">
+                El cuerpo humano está compuesto en más del 60% por agua, un líquido prácticamente incompresible ($B approx 2.2,	ext{GPa}$). Por ello, el aumento de presión en el buceo no comprime las células hidrófilas ni el plasma, pero sí comprime severamente cavidades gaseosas (pulmones, oído medio, senos paranasales), causando barotraumatismos y requiriendo cámaras hiperbáricas de descompresión.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- MÓDULO 3: ESFUERZO DE CORTE (CIZALLADURA) -->
+      <!-- ========================================================================= -->
+      <section id="mod3-content" class="module-section hidden space-y-6">
+        
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
+            Módulo 3: Esfuerzo de Corte (Cizalladura) y Deformación Angular
+          </h2>
+          <p class="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">
+            En el esfuerzo de corte, las fuerzas aplicadas actúan <strong>tangencialmente y en sentido opuesto</strong> sobre caras paralelas de área $A$. Esto no altera el volumen del objeto, sino su geometría angular, produciendo un desplazamiento lateral $x$ relativo a la altura $h$.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          
+          <!-- Columna Izquierda: Teoría, Controles y Métricas (5 cols) -->
+          <div class="xl:col-span-5 flex flex-col space-y-5">
+            
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                  <i class="fa-solid fa-graduation-cap"></i> Fórmulas de Cizalla
+                </h3>
+                <span class="text-[11px] bg-accent-light text-accent px-2.5 py-0.5 rounded-full font-semibold border border-accent/20">Módulo S</span>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center font-mono text-xs text-gray-800 space-y-2">
+                <div>$$	ext{Esfuerzo de Corte} = rac{F_parallel}{A} quad [	ext{Pa}]$$</div>
+                <div>$$	ext{Deformación de Corte} = rac{x}{h} = 	an phi approx phi quad [	ext{rad}], quad S = rac{F_parallel / A}{x / h}$$</div>
+              </div>
+            </div>
+
+            <!-- Controles M3 -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Fuerza Tangencial y Geometría
+              </h3>
+
+              <div>
+                <label class="text-xs font-semibold text-gray-700 block mb-1.5">Estructura / Tejido Óseo:</label>
+                <select id="m3MaterialSelect" onchange="changeM3Material()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-accent">
+                  <option value="bone_shear">Hueso Cortical Humano (Cizalla) (S = 10 GPa)</option>
+                  <option value="cartilage">Cartílago Articular (S = 0.002 GPa)</option>
+                  <option value="steel_shear">Acero Quirúrgico (S = 75 GPa)</option>
+                  <option value="aluminum">Aluminio Estructural (S = 25 GPa)</option>
+                  <option value="gelatin">Tejido Blando / Gel Balístico (S = 0.0005 GPa)</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Fuerza Tangencial ($F_parallel$):</span>
+                  <span id="m3ForceVal" class="font-mono text-accent font-bold">5,000 N</span>
+                </div>
+                <input type="range" id="m3ForceSlider" min="0" max="20000" step="100" value="5000" oninput="updateM3Simulation()" class="w-full accent-accent bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                  <span>0 N</span>
+                  <span>10,000 N</span>
+                  <span>20,000 N</span>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Altura del Bloque ($h$):</span>
+                  <span id="m3HeightVal" class="font-mono text-amber-600 font-bold">100 mm</span>
+                </div>
+                <input type="range" id="m3HeightSlider" min="20" max="300" step="5" value="100" oninput="updateM3Simulation()" class="w-full accent-amber-600 bg-gray-200 rounded-lg cursor-pointer h-1.5">
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Área Cara Superior ($A$):</span>
+                  <span id="m3AreaVal" class="font-mono text-emerald-700 font-bold">25.0 cm²</span>
+                </div>
+                <input type="range" id="m3AreaSlider" min="2.0" max="100.0" step="1" value="25.0" oninput="updateM3Simulation()" class="w-full accent-emerald-700 bg-gray-200 rounded-lg cursor-pointer h-1.5">
+              </div>
+            </div>
+
+            <!-- Métricas M3 -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-gauge-high text-accent"></i> Respuesta de Cizallamiento
+              </h3>
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Esfuerzo Tang.</span>
+                  <span id="m3-disp-tau" class="font-mono text-sm font-bold text-accent">0.00 MPa</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Deform. $x/h$</span>
+                  <span id="m3-disp-gamma" class="font-mono text-sm font-bold text-amber-600">0.000 rad</span>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span class="text-[10px] text-gray-500 block mb-0.5">Módulo $S$</span>
+                  <span id="m3-disp-S" class="font-mono text-xs font-bold text-emerald-700">S = 10.0 GPa</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Canvas y Traumatología (7 cols) -->
+          <div class="xl:col-span-7 flex flex-col space-y-5">
+            <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                  <i class="fa-solid fa-desktop text-accent"></i> Distorsión Angular por Cizalla
+                </span>
+                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-accent-light text-accent border border-accent/20 font-semibold">
+                  Ángulo $phi approx 	an phi$
+                </span>
+              </div>
+
+              <div class="relative w-full aspect-[4/3] bg-physics-canvas rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                <canvas id="canvasM3" class="w-full h-full block"></canvas>
+                <div class="absolute top-3 right-3 bg-slate-900/90 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300">
+                  Desplazamiento $x$: <span id="m3DispXTag" class="text-accent font-bold">0.00 mm</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-accent-light border border-accent/20 rounded-2xl p-5 shadow-sm space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-accent flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope"></i> Biomecánica Traumatológica y Fracturas Óseas
+              </h3>
+              <p class="text-xs text-gray-700 leading-relaxed font-normal">
+                Los huesos largos soportan tensiones axiales excelentes pero son muy vulnerables a la cizalladura. En rotaciones bruscas del pie fijado al suelo, las fuerzas tangenciales superan el módulo $S$ cortical, originando fracturas espiroideas de tibia o luxaciones de menisco en la rodilla.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- MÓDULO 4: DIAGRAMA ESFUERZO-DEFORMACIÓN Y LÍMITES MECÁNICOS -->
+      <!-- ========================================================================= -->
+      <section id="mod4-content" class="module-section hidden space-y-6">
+        
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
+              Módulo 4: Diagrama Esfuerzo-Deformación ($sigma - epsilon$) y Límites Mecánicos
+            </h2>
+            <p class="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+              Exploración de la respuesta mecánica continua de una probeta: desde la <strong>Ley de Hooke (Punto a)</strong> y el <strong>Límite Elástico Reversible (Punto b)</strong>, hasta el <strong>Régimen Plástico</strong> y la fractura final.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnCycleUnload" onclick="triggerUnloadCycle()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition flex items-center gap-2">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Ciclo de Descarga
+            </button>
+            <button onclick="resetM4Specimen()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 transition">
+              Reiniciar Probeta
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          
+          <!-- Columna Izquierda: Teoría, Controles y Reporte (5 cols) -->
+          <div class="xl:col-span-5 flex flex-col space-y-5">
+            
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                  <i class="fa-solid fa-graduation-cap"></i> Ley de Hooke & Ruptura
+                </h3>
+                <span class="text-[11px] bg-accent-light text-accent px-2.5 py-0.5 rounded-full font-semibold border border-accent/20">Diagrama $sigma-epsilon$</span>
+              </div>
+              <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-center font-mono text-xs text-gray-800 space-y-1">
+                <div>$$sigma = Y cdot epsilon quad (	ext{Válida estrictamente hasta el Punto } a)$$</div>
+                <div>$$epsilon_{	ext{total}} = epsilon_{	ext{elástica}} + epsilon_{	ext{plástica}}$$</div>
+              </div>
+            </div>
+
+            <!-- Controles M4 -->
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 class="text-xs font-bold tracking-wider uppercase text-accent flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> Máquina Universal de Tracción
+              </h3>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-700 font-medium">Deformación Unitaria Aplicada ($epsilon$):</span>
+                  <span id="m4EpsilonVal" class="font-mono text-accent font-bold">0.0050</span>
+                </div>
+                <input type="range" id="m4EpsilonSlider" min="0" max="0.12" step="0.0005" value="0.005" oninput="updateM4Simulation()" class="w-full accent-accent bg-gray-200 rounded-lg cursor-pointer h-1.5">
+                <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                  <span>0.00 (Origen)</span>
+                  <span>Límite b (~0.02)</span>
+                  <span>Fractura (~0.10)</span>
+                </div>
+              </div>
+
+              <!-- Report Box -->
+              <div id="m4ReportBox" class="p-3.5 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Esfuerzo Instantáneo $sigma$:</span>
+                  <span id="m4SigmaDisplay" class="font-mono font-bold text-accent text-sm">150.0 MPa</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Deformación Plástica Remanente ($epsilon_p$):</span>
+                  <span id="m4PlasticRemDisplay" class="font-mono font-bold text-amber-600 text-sm">0.0000</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Comportamiento en Descarga:</span>
+                  <span id="m4BehaviorTag" class="text-emerald-700 font-semibold text-xs">Recupera $L_0$ íntegramente</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs font-semibold text-gray-700 block mb-1.5">Material de la Probeta de Ensayo:</label>
+                <select id="m4MaterialSelect" onchange="changeM4Material()" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-accent">
+                  <option value="ductile_steel">Acero Dúctil Quirúrgico (Marcada fluencia y cuello)</option>
+                  <option value="cortical_bone">Hueso Cortical Humano (Frágil / Viscoelástico)</option>
+                  <option value="tendon_curve">Tendón / Ligamento (Zona Toe inicial no lineal)</option>
+                </select>
+              </div>
+
+              <div class="space-y-2 text-[11px] text-gray-600">
+                <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                  <strong class="text-accent block mb-0.5">1. Punto a (Límite Proporcional):</strong>
+                  Hasta aquí la pendiente $rac{Delta sigma}{Delta epsilon} = Y$ es constante (recta Hooke perfecta).
+                </div>
+                <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                  <strong class="text-emerald-700 block mb-0.5">2. Punto b (Límite Elástico):</strong>
+                  Si retiras la carga antes de $b$, la probeta vuelve a $L_0$ sin deformación permanente ($epsilon_p = 0$).
+                </div>
+                <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                  <strong class="text-amber-700 block mb-0.5">3. Régimen Plástico & Histéresis:</strong>
+                  Superado $b$, los planos atómicos se deslizan permanentemente dejando deformación plástica irreversible.
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Canvas Gráfico y Probeta (7 cols) -->
+          <div class="xl:col-span-7 flex flex-col space-y-5">
+            <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col space-y-3">
+              <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                  <i class="fa-solid fa-desktop text-accent"></i> Curva Experimental Dinámica $sigma$ vs. $epsilon$
+                </span>
+                <div id="m4StateBadge" class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+                  Régimen Elástico Reversible (Hooke)
+                </div>
+              </div>
+
+              <div class="relative w-full aspect-[4/3] bg-physics-canvas rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+                <canvas id="canvasM4" class="w-full h-full block"></canvas>
+                
+                <div class="absolute top-3 right-3 w-28 bg-slate-900/90 backdrop-blur rounded-xl border border-slate-800 p-2 text-center shadow-lg">
+                  <span class="text-[9px] text-slate-400 font-bold block mb-1">Probeta Ensayo</span>
+                  <div class="h-24 flex items-center justify-center relative bg-slate-950 rounded-lg overflow-hidden border border-slate-800">
+                    <canvas id="canvasSpecimen" class="w-full h-full"></canvas>
+                  </div>
+                  <span id="m4SpecimenNeckTag" class="text-[9px] font-mono text-slate-400 mt-1 block">Estricción: Normal</span>
+                </div>
+              </div>
+
+              <!-- Indicadores de Hitos -->
+              <div class="grid grid-cols-4 gap-2 text-center text-xs pt-1">
+                <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span class="text-gray-500 block text-[10px]">Punto a</span>
+                  <span class="font-mono text-xs font-bold text-accent">Hooke Estricto</span>
+                </div>
+                <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span class="text-gray-500 block text-[10px]">Punto b</span>
+                  <span class="font-mono text-xs font-bold text-emerald-700">100% Retorno</span>
+                </div>
+                <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span class="text-gray-500 block text-[10px]">Punto c</span>
+                  <span class="font-mono text-xs font-bold text-amber-600">Fluencia Plástica</span>
+                </div>
+                <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span class="text-gray-500 block text-[10px]">Punto d</span>
+                  <span class="font-mono text-xs font-bold text-rose-600">Fractura Ósea</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-accent-light border border-accent/20 rounded-2xl p-5 shadow-sm space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-accent flex items-center gap-2">
+                <i class="fa-solid fa-stethoscope"></i> Histéresis Elástica y Viscoelasticidad Biológica
+              </h3>
+              <p class="text-xs text-gray-700 leading-relaxed font-normal">
+                Las arterias elásticas (como la aorta) y los tendones no siguen un comportamiento perfectamente reversible sin pérdida de energía: disipan una fracción en forma de calor (área entre las curvas de carga y descarga), lo que protege los capilares periféricos de picos de presión sistólica severos mediante el efecto amortiguador hemodinámico <em>Windkessel</em>.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal Tutorial / Guía de Uso -->
+  <div id="tutorial-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-accent"></span>
+          <h3 class="text-base font-bold text-gray-800 uppercase tracking-wide">Guía de Uso del Simulador de Física</h3>
+        </div>
+        <button onclick="closeTutorial()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+      </div>
+      
+      <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
+        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+          <span class="font-bold text-gray-800 text-xs block mb-1">Propósito Pedagógico (Curso de Ingreso a Medicina - UCCuyo):</span>
+          Este simulador interactivo permite dominar las propiedades mecánicas y elásticas de los medios deformables y su correlación directa con la biomecánica clínica y la biofísica de tejidos: el contraste entre la idealización del cuerpo rígido indeformable y el comportamiento elástico real; la caracterización analítica y visual de los tres modos de deformación con sus respectivos módulos ($Y$, $B$ y $S$); y el análisis exhaustivo del Diagrama Esfuerzo-Deformación ($sigma - epsilon$), incluyendo los límites elásticos, histéresis y rotura por fractura.
+        </div>
+
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1 text-accent">1. Módulo 1: Rígido vs Deformable & Esfuerzo de Tensión</h4>
+          <ul class="list-disc list-inside space-y-1.5 ml-1 text-gray-600">
+            <li><strong>Transición Conceptual:</strong> Conmute entre <em>Cuerpo Rígido (Teórico)</em> ($Delta L = 0$ para satisfacer $sum ec{F} = ec{0}$) y <em>Cuerpo Deformable (Real)</em> para evidenciar que toda carga genera desplazamiento atómico y alargamiento elástico.</li>
+            <li><strong>Esfuerzo Normal ($sigma$):</strong> Cuantifica la fuerza perpendicular por unidad de área transversal:
+              <div class="my-1 pl-4 font-mono text-gray-700">$$sigma = rac{F_perp}{A} quad [	ext{Pa} = 	ext{N/m}^2]$$</div>
+            </li>
+            <li><strong>Efecto del Calibre:</strong> Utilice los selectores de calibre para contrastar cómo, bajo una misma carga, un hilo fino ($1,	ext{mm}$) sufre esfuerzos destructivos mientras que una barra gruesa ($50,	ext{mm}$) reduce el esfuerzo en proporción al cuadrado del diámetro ($A = rac{pi d^2}{4}$).</li>
+            <li><strong>Deformación Unitaria Longitudinal ($epsilon$):</strong> Variación relativa adimensional:
+              <div class="my-1 pl-4 font-mono text-gray-700">$$epsilon = rac{Delta L}{L_0}$$</div>
+              Permite comprender el dilema de escala: $Delta L = 1,	ext{cm}$ representa una deformación crítica en un cable de $1,	ext{m}$ ($epsilon = 10^{-2}$), pero insignificante en un tendón o cable de $1,	ext{km}$ ($epsilon = 10^{-5}$).
+            </li>
+            <li><strong>Módulo de Young ($Y$):</strong> Constante de proporcionalidad lineal elástica según la Ley de Hooke ($Y = sigma / epsilon$), configurable para hueso compacto ($18,	ext{GPa}$), tendón de Aquiles ($1.5,	ext{GPa}$), colágeno ($1.0,	ext{GPa}$) y titanio ortopédico.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1 text-accent">2. Módulo 2: Compresión Volumétrica y Compresibilidad</h4>
+          <ul class="list-disc list-inside space-y-1.5 ml-1 text-gray-600">
+            <li><strong>Presión Isótropa en Fluidos ($Delta p$):</strong> Simulación de fuerzas perpendiculares aplicadas uniformemente sobre todas las caras de un cuerpo sumergido a profundidades variables en pascales ($	ext{Pa}$).</li>
+            <li><strong>Deformación Volumétrica ($Delta V / V_0$):</strong> Contracción fraccionaria adimensional del volumen inicial $V_0$.</li>
+            <li><strong>Módulo Volumétrico ($B$) y Justificación del Signo Negativo:</strong>
+              <div class="my-1 pl-4 font-mono text-gray-700">$$B = -rac{Delta p}{Delta V / V_0} quad [	ext{Pa}]$$</div>
+              El signo menos compensa la disminución física del volumen ($Delta V < 0$) provocada por un aumento de presión ($Delta p > 0$), asegurando que $B$ sea siempre una propiedad positiva.
+            </li>
+            <li><strong>Compresibilidad ($k$):</strong> Inversa del módulo volumétrico ($k = 1/B$), fundamental para analizar la incompresibilidad del agua/plasma sanguíneo y los efectos barométricos en buceo e hiperbaria.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1 text-accent">3. Módulo 3: Esfuerzo de Corte (Cizalladura)</h4>
+          <ul class="list-disc list-inside space-y-1.5 ml-1 text-gray-600">
+            <li><strong>Deformación Angular sin Cambio de Volumen:</strong> Modelado del desplazamiento tangencial lateral ($x$) de la cara superior de un prisma respecto a su base fija a lo largo de una altura ($h$).</li>
+            <li><strong>Esfuerzo y Deformación de Cizalla:</strong>
+              <div class="my-1 pl-4 font-mono text-gray-700">$$	ext{Esfuerzo cortante} = rac{F_parallel}{A}, quad 	ext{Deformación de corte} = rac{x}{h} = 	an phi approx phi quad [	ext{rad}]$$</div>
+            </li>
+            <li><strong>Módulo de Corte ($S$):</strong> Resistencia elástica a la distorsión angular ($S = rac{F_parallel / A}{x / h}$). Permite evaluar la fragilidad ósea ante fuerzas torsionales y fracturas espiroideas en tibia y fémur.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1 text-accent">4. Módulo 4: Diagrama Esfuerzo-Deformación y Límites Mecánicos</h4>
+          <ul class="list-disc list-inside space-y-1.5 ml-1 text-gray-600">
+            <li><strong>Trazado Dinámico Continuo ($sigma$ vs $epsilon$):</strong> Curva en tiempo real sincronizada con el estiramiento y formación de cuello (estricción) en la probeta ensayada.</li>
+            <li><strong>Punto a (Límite de Proporcionalidad):</strong> Cierre del tramo estrictamente recto donde rige la Ley de Hooke con pendiente constante ($Y = Delta sigma / Delta epsilon$).</li>
+            <li><strong>Punto b (Límite Elástico Reversible):</strong> Máximo esfuerzo admisible antes de sufrir daño permanente. Al presionar <em>"Ciclo de Descarga"</em> antes de este hito, la probeta recupera el 100% de sus dimensiones originales ($L_0$).</li>
+            <li><strong>Régimen Plástico e Histéresis:</strong> Superado el límite elástico, el material sufre deslizamiento atómico irreversible. La descarga se produce en línea paralela a la elástica, dejando una deformación permanente remanente ($epsilon_p > 0$).</li>
+            <li><strong>Punto d (Rotura):</strong> Tensión última y colapso estructural con fractura completa del espécimen.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-gray-800 text-sm mb-1 text-accent">5. Herramientas y Asistencia</h4>
+          <ul class="list-disc list-inside space-y-1 ml-1 text-gray-600">
+            <li><strong>Materiales Médicos y Quirúrgicos:</strong> Seleccione probetas de hueso cortical, tendones viscoelásticos, acero quirúrgico 316L y titanio ortopédico.</li>
+            <li><strong>Páneles Métricos Dinámicos:</strong> Lectura continua de esfuerzos en $	ext{MPa}$, deformaciones unitarias y módulos elásticos.</li>
+            <li><strong>Correlación Clínica:</strong> Tarjeta inferior pedagógica en verde oliva con fundamentos traumatológicos, cardiovasculares y ortopédicos adaptados al curso médico de la UCCuyo.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-gray-100 flex justify-end">
+        <button onclick="closeTutorial()" class="px-5 py-2 bg-accent text-white text-xs font-semibold rounded-xl hover:bg-accent-hover transition shadow-sm">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+<!-- Pie de Página Institucional -->
+  <footer class="bg-white border-t border-gray-200 py-4 mt-8 text-center text-xs text-gray-500">
+    Desarrollado por vesalio - Todos los derechos reservados
+  </footer>
+
+  <script>
+    function openTutorial() {
+      const modal = document.getElementById('tutorial-modal');
+      modal.classList.remove('hidden');
+      if (window.renderMathInElement) {
+        renderMathInElement(modal, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    function closeTutorial() {
+      document.getElementById('tutorial-modal').classList.add('hidden');
+    }
+
+    /* =========================================================================
+     * GLOBAL SYSTEM STATE & AUDIO SYNTHESIS (WEB AUDIO API)
+     * ========================================================================= */
+    let audioEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+    }
+
+    function playTone(freq = 440, type = 'sine', duration = 0.1, gainVal = 0.05) {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio non-critical error:', e);
+      }
+    }
+
+// Audio UI removed per user request
+
+    function showToast(msg, icon = 'ℹ️') {
+      const box = document.getElementById('toastBox');
+      document.getElementById('toastMessage').innerText = msg;
+      document.getElementById('toastIcon').innerText = icon;
+      box.classList.remove('translate-y-20', 'opacity-0');
+      box.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        box.classList.remove('translate-y-0', 'opacity-100');
+        box.classList.add('translate-y-20', 'opacity-0');
+      }, 3200);
+    }
+
+    /* Tab switcher */
+    let activeTab = 'mod1';
+    function switchTab(tabId) {
+      activeTab = tabId;
+      const tabs = ['mod1', 'mod2', 'mod3', 'mod4'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) {
+          if (t === tabId) {
+            btn.className = "tab-btn bg-accent text-white flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-semibold transition shadow-sm flex items-center gap-2.5";
+          } else {
+            btn.className = "tab-btn text-gray-700 hover:bg-gray-100 flex-1 lg:flex-none text-left py-2.5 px-4 rounded-xl text-sm font-medium transition flex items-center gap-2.5";
+          }
+        }
+      });
+
+      document.querySelectorAll('.module-section').forEach(sec => sec.classList.add('hidden'));
+      const activeSec = document.getElementById(tabId + '-content');
+      if (activeSec) {
+        activeSec.classList.remove('hidden');
+      }
+
+      // Redimensionar y redibujar con requestAnimationFrame para garantizar medidas en DOM
+      requestAnimationFrame(() => {
+        resizeAllCanvases();
+        if (tabId === 'mod1') updateM1Simulation();
+        else if (tabId === 'mod2') updateM2Simulation();
+        else if (tabId === 'mod3') updateM3Simulation();
+        else if (tabId === 'mod4') updateM4Simulation();
+      });
+
+      playTone(520, 'sine', 0.08, 0.03);
+    }
+
+    /* =========================================================================
+     * MÓDULO 1: TRACCIÓN AXIAL, CALIBRE Y MÓDULO DE YOUNG
+     * ========================================================================= */
+    const canvasM1 = document.getElementById('canvasM1');
+    const ctxM1 = canvasM1.getContext('2d');
+
+    let m1RigidMode = false;
+    let m1MaterialData = {
+      bone: { name: 'Hueso Compacto', Y: 18e9, maxSigma: 130e6, color: '#f59e0b' },
+      tendon: { name: 'Tendón de Aquiles', Y: 1.5e9, maxSigma: 70e6, color: '#ec4899' },
+      collagen: { name: 'Fibra de Colágeno', Y: 1.0e9, maxSigma: 50e6, color: '#f43f5e' },
+      steel: { name: 'Acero Quirúrgico 316L', Y: 200e9, maxSigma: 550e6, color: '#38bdf8' },
+      titanium: { name: 'Titanio Ti-6Al-4V', Y: 110e9, maxSigma: 860e6, color: '#a78bfa' },
+      rubber: { name: 'Elastómero', Y: 0.05e9, maxSigma: 15e6, color: '#34d399' }
+    };
+
+    let m1Params = {
+      matKey: 'steel',
+      F: 2500, // N
+      diamMm: 4.0, // mm
+      L0: 1.5 // m
+    };
+
+    function setRigidMode(isRigid) {
+      m1RigidMode = isRigid;
+      const bRigid = document.getElementById('btnModelRigid');
+      const bDeform = document.getElementById('btnModelDeform');
+      if (isRigid) {
+        bRigid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white shadow-md shadow-amber-600/30 transition';
+        bDeform.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition';
+        document.getElementById('m1-status-pill').innerText = 'Modelo Ideal: Sólido Rígido (ΔL = 0)';
+        document.getElementById('m1-status-pill').className = 'text-xs font-mono px-2.5 py-1 rounded bg-amber-950 text-amber-300 border border-amber-800';
+        showToast('Modelo de Cuerpo Rígido: Las fuerzas satisfacen el equilibrio pero la distancia interatómica es absolutamente indeformable.', '📐');
+      } else {
+        bDeform.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white shadow-md shadow-sky-600/30 transition';
+        bRigid.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition';
+        document.getElementById('m1-status-pill').innerText = 'Régimen Real: Sólido Deformable (Hooke)';
+        document.getElementById('m1-status-pill').className = 'text-xs font-mono px-2.5 py-1 rounded bg-sky-950 text-sky-300 border border-sky-800';
+        showToast('Modelo Deformable: Se manifiesta deformación elástica dependiente del área transversal y del Módulo de Young.', '🔬');
+      }
+      playTone(isRigid ? 320 : 640, 'triangle', 0.1, 0.04);
+      drawM1();
+    }
+
+    function changeM1Material() {
+      m1Params.matKey = document.getElementById('m1MaterialSelect').value;
+      updateM1Simulation();
+    }
+
+    function setCaliberPreset(diam) {
+      document.getElementById('m1DiamSlider').value = diam;
+      updateM1Simulation();
+      playTone(400 + diam * 8, 'sine', 0.08, 0.03);
+    }
+
+    function updateM1Simulation() {
+      m1Params.F = parseFloat(document.getElementById('m1ForceSlider').value);
+      m1Params.diamMm = parseFloat(document.getElementById('m1DiamSlider').value);
+      m1Params.L0 = parseFloat(document.getElementById('m1LengthSlider').value);
+
+      document.getElementById('m1ForceVal').innerText = m1Params.F.toLocaleString('es-AR') + ' N';
+      document.getElementById('m1DiamVal').innerText = m1Params.diamMm.toFixed(1) + ' mm';
+      document.getElementById('m1LengthVal').innerText = m1Params.L0.toFixed(2) + ' m';
+
+      drawM1();
+    }
+
+    function drawM1() {
+      if (activeTab !== 'mod1') return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasM1.width / dpr;
+      const h = canvasM1.height / dpr;
+      ctxM1.clearRect(0, 0, w, h);
+
+      const mat = m1MaterialData[m1Params.matKey];
+      const rMeters = (m1Params.diamMm / 1000) / 2;
+      const A = Math.PI * Math.pow(rMeters, 2); // m^2
+      
+      const sigma = m1Params.F / A; // Pa
+      let epsilon = sigma / mat.Y; // adim
+      if (m1RigidMode) epsilon = 0; // Rigid simplification!
+      
+      const deltaL = epsilon * m1Params.L0; // m
+
+      // Update HUD
+      document.getElementById('m1-disp-sigma').innerText = (sigma / 1e6).toFixed(2) + ' MPa';
+      document.getElementById('m1-disp-epsilon').innerText = epsilon.toFixed(6) + ' (adim)';
+      document.getElementById('m1-disp-deltaL').innerText = (deltaL * 1000).toFixed(3) + ' mm';
+
+      // Visual scaling: exaggerated for visibility
+      const maxVisualStretch = 80;
+      const visualDeltaY = m1RigidMode ? 0 : Math.min(epsilon * 5000 + (m1Params.F > 0 ? 4 : 0), maxVisualStretch);
+      document.getElementById('m1ScaleTag').innerText = m1RigidMode ? '0 (Rígido)' : (epsilon > 0.01 ? '50x' : '1500x Amplif.');
+
+      // Background grid lines
+      ctxM1.strokeStyle = '#1e293b';
+      ctxM1.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctxM1.beginPath(); ctxM1.moveTo(x, 0); ctxM1.lineTo(x, h); ctxM1.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctxM1.beginPath(); ctxM1.moveTo(0, y); ctxM1.lineTo(w, y); ctxM1.stroke();
+      }
+
+      // Ceiling anchor
+      const ceilingY = 50;
+      ctxM1.fillStyle = '#334155';
+      ctxM1.fillRect(w / 2 - 120, ceilingY - 14, 240, 14);
+      // Hatching ceiling
+      ctxM1.strokeStyle = '#64748b';
+      ctxM1.lineWidth = 2;
+      for (let x = w / 2 - 110; x <= w / 2 + 110; x += 15) {
+        ctxM1.beginPath(); ctxM1.moveTo(x, ceilingY - 14); ctxM1.lineTo(x - 10, ceilingY - 24); ctxM1.stroke();
+      }
+
+      // Cable/Bar representation
+      const initialCableLength = 190;
+      const currentCableLength = initialCableLength + visualDeltaY;
+      const visualCableWidth = Math.max(3, Math.min(46, m1Params.diamMm * 1.5));
+      const cableX = w / 2 - visualCableWidth / 2;
+
+      // Unloaded reference ghost outline
+      ctxM1.save();
+      ctxM1.setLineDash([4, 4]);
+      ctxM1.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+      ctxM1.strokeRect(cableX, ceilingY, visualCableWidth, initialCableLength);
+      ctxM1.restore();
+
+      // Deformed Specimen Cable
+      const grad = ctxM1.createLinearGradient(cableX, ceilingY, cableX + visualCableWidth, ceilingY);
+      grad.addColorStop(0, mat.color);
+      grad.addColorStop(0.5, '#ffffff');
+      grad.addColorStop(1, mat.color);
+
+      ctxM1.fillStyle = grad;
+      ctxM1.beginPath();
+      ctxM1.roundRect(cableX, ceilingY, visualCableWidth, currentCableLength, 2);
+      ctxM1.fill();
+      ctxM1.lineWidth = 1.5;
+      ctxM1.strokeStyle = '#0284c7';
+      ctxM1.stroke();
+
+      // Transverse cut-section badge (Visualizing Caliber)
+      const cutCircleX = w / 2 + 130;
+      const cutCircleY = 120;
+      ctxM1.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctxM1.strokeStyle = '#334155';
+      ctxM1.lineWidth = 1.5;
+      ctxM1.beginPath();
+      ctxM1.roundRect(cutCircleX - 60, cutCircleY - 55, 120, 110, 10);
+      ctxM1.fill();
+      ctxM1.stroke();
+
+      ctxM1.fillStyle = '#94a3b8';
+      ctxM1.font = '10px Inter';
+      ctxM1.textAlign = 'center';
+      ctxM1.fillText('Sección Transversal A', cutCircleX, cutCircleY - 38);
+
+      const circleRadius = Math.max(3, Math.min(32, (m1Params.diamMm / 50) * 32));
+      ctxM1.beginPath();
+      ctxM1.arc(cutCircleX, cutCircleY, circleRadius, 0, Math.PI * 2);
+      ctxM1.fillStyle = mat.color;
+      ctxM1.fill();
+      ctxM1.strokeStyle = '#ffffff';
+      ctxM1.lineWidth = 1.5;
+      ctxM1.stroke();
+
+      // Section area label
+      ctxM1.fillStyle = '#f8fafc';
+      ctxM1.font = '10px JetBrains Mono';
+      ctxM1.fillText(`d = ${m1Params.diamMm.toFixed(1)} mm`, cutCircleX, cutCircleY + 42);
+
+      // Load Hanging Mass Hook
+      const hookY = ceilingY + currentCableLength;
+      ctxM1.fillStyle = '#475569';
+      ctxM1.beginPath();
+      ctxM1.arc(w / 2, hookY + 8, 8, 0, Math.PI * 2);
+      ctxM1.fill();
+
+      // Applied Tensile Force Arrow F_perp
+      if (m1Params.F > 0) {
+        const arrowLen = Math.min(80, 25 + (m1Params.F / 15000) * 55);
+        const arrowStartY = hookY + 16;
+        const arrowEndY = arrowStartY + arrowLen;
+
+        ctxM1.strokeStyle = '#f97316';
+        ctxM1.lineWidth = 4;
+        ctxM1.beginPath();
+        ctxM1.moveTo(w / 2, arrowStartY);
+        ctxM1.lineTo(w / 2, arrowEndY);
+        ctxM1.stroke();
+
+        // Arrowhead
+        ctxM1.fillStyle = '#f97316';
+        ctxM1.beginPath();
+        ctxM1.moveTo(w / 2, arrowEndY + 8);
+        ctxM1.lineTo(w / 2 - 7, arrowEndY);
+        ctxM1.lineTo(w / 2 + 7, arrowEndY);
+        ctxM1.closePath();
+        ctxM1.fill();
+
+        // Arrow Label
+        ctxM1.fillStyle = '#fb923c';
+        ctxM1.font = 'bold 12px Inter';
+        ctxM1.textAlign = 'left';
+        ctxM1.fillText(`F⊥ = ${m1Params.F} N`, w / 2 + 16, arrowStartY + arrowLen / 2);
+      }
+
+      // Dimension brackets: Initial L0 vs Delta L
+      const bracketX = w / 2 - visualCableWidth / 2 - 30;
+      ctxM1.strokeStyle = '#38bdf8';
+      ctxM1.lineWidth = 1.5;
+
+      // Initial length indicator
+      ctxM1.beginPath();
+      ctxM1.moveTo(bracketX, ceilingY);
+      ctxM1.lineTo(bracketX - 8, ceilingY);
+      ctxM1.moveTo(bracketX - 4, ceilingY);
+      ctxM1.lineTo(bracketX - 4, ceilingY + initialCableLength);
+      ctxM1.moveTo(bracketX, ceilingY + initialCableLength);
+      ctxM1.lineTo(bracketX - 8, ceilingY + initialCableLength);
+      ctxM1.stroke();
+
+      ctxM1.save();
+      ctxM1.translate(bracketX - 12, ceilingY + initialCableLength / 2);
+      ctxM1.rotate(-Math.PI / 2);
+      ctxM1.fillStyle = '#38bdf8';
+      ctxM1.font = '11px Inter';
+      ctxM1.textAlign = 'center';
+      ctxM1.fillText(`L₀ = ${m1Params.L0.toFixed(2)} m`, 0, 0);
+      ctxM1.restore();
+
+      // Delta L indicator bracket (if stretched)
+      if (visualDeltaY > 1 && !m1RigidMode) {
+        const dLBracketX = w / 2 + visualCableWidth / 2 + 25;
+        ctxM1.strokeStyle = '#4ade80';
+        ctxM1.lineWidth = 2;
+        ctxM1.beginPath();
+        ctxM1.moveTo(dLBracketX - 4, ceilingY + initialCableLength);
+        ctxM1.lineTo(dLBracketX + 4, ceilingY + initialCableLength);
+        ctxM1.moveTo(dLBracketX, ceilingY + initialCableLength);
+        ctxM1.lineTo(dLBracketX, hookY);
+        ctxM1.moveTo(dLBracketX - 4, hookY);
+        ctxM1.lineTo(dLBracketX + 4, hookY);
+        ctxM1.stroke();
+
+        ctxM1.fillStyle = '#4ade80';
+        ctxM1.font = 'bold 11px Inter';
+        ctxM1.textAlign = 'left';
+        ctxM1.fillText(`ΔL = ${(deltaL * 1000).toFixed(2)} mm`, dLBracketX + 10, hookY - visualDeltaY / 2 + 4);
+      }
+    }
+
+    /* =========================================================================
+     * MÓDULO 2: ESFUERZO VOLUMÉTRICO Y COMPRESIBILIDAD
+     * ========================================================================= */
+    const canvasM2 = document.getElementById('canvasM2');
+    const ctxM2 = canvasM2.getContext('2d');
+
+    const m2MaterialData = {
+      water: { name: 'Agua Líquida', B: 2.2e9, color: '#38bdf8' },
+      lead: { name: 'Plomo', B: 7.7e10, color: '#94a3b8' },
+      steel: { name: 'Acero Quirúrgico', B: 16.0e10, color: '#60a5fa' },
+      plasma: { name: 'Plasma Sanguíneo', B: 2.1e9, color: '#f87171' },
+      cortex: { name: 'Hueso Esponjoso', B: 3.1e9, color: '#facc15' }
+    };
+
+    let m2Params = {
+      matKey: 'water',
+      deltaP: 10.0, // MPa
+      V0: 1.0 // Litros
+    };
+
+    function changeM2Material() {
+      m2Params.matKey = document.getElementById('m2MaterialSelect').value;
+      updateM2Simulation();
+    }
+
+    function updateM2Simulation() {
+      m2Params.deltaP = parseFloat(document.getElementById('m2PressureSlider').value);
+      m2Params.V0 = parseFloat(document.getElementById('m2VolSlider').value);
+
+      document.getElementById('m2PressureVal').innerText = m2Params.deltaP.toFixed(1) + ' MPa';
+      document.getElementById('m2VolVal').innerText = m2Params.V0.toFixed(2) + ' L';
+
+      // Depth equivalent in water: P = rho * g * h => h = P / (rho * g)
+      // 1 MPa = 1,000,000 Pa / (1000 * 9.8) = ~102 meters
+      const depthMeters = Math.round((m2Params.deltaP * 1e6) / (1000 * 9.806));
+      document.getElementById('m2DepthEquiv').innerText = depthMeters.toLocaleString('es-AR') + ' m';
+
+      drawM2();
+    }
+
+    function drawM2() {
+      if (activeTab !== 'mod2') return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasM2.width / dpr;
+      const h = canvasM2.height / dpr;
+      ctxM2.clearRect(0, 0, w, h);
+
+      const mat = m2MaterialData[m2Params.matKey];
+      const deltaP_Pa = m2Params.deltaP * 1e6;
+      const fracVolDeform = - deltaP_Pa / mat.B; // negative volume deformation
+      const kVal = 1 / mat.B; // Compressibility
+
+      // Updates HUD
+      document.getElementById('m2-disp-dp').innerText = m2Params.deltaP.toFixed(2) + ' MPa';
+      document.getElementById('m2-disp-epsV').innerText = (fracVolDeform * 100).toFixed(4) + ' %';
+      document.getElementById('m2-disp-Bk').innerText = `B=${(mat.B / 1e9).toFixed(1)} GPa | k=${(kVal * 1e11).toFixed(2)}×10⁻¹¹ Pa⁻¹`;
+
+      // Chamber background fluid
+      const fluidGrad = ctxM2.createLinearGradient(0, 0, 0, h);
+      fluidGrad.addColorStop(0, '#0c2238');
+      fluidGrad.addColorStop(1, '#061220');
+      ctxM2.fillStyle = fluidGrad;
+      ctxM2.fillRect(0, 0, w, h);
+
+      // Bubbles / fluid particles effect
+      ctxM2.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      for (let i = 0; i < 24; i++) {
+        const bx = (i * 37 + 15) % w;
+        const by = (i * 49 + 30) % h;
+        ctxM2.beginPath();
+        ctxM2.arc(bx, by, (i % 3) + 1.5, 0, Math.PI * 2);
+        ctxM2.fill();
+      }
+
+      // Base geometry dimensions for cube / sphere submerged
+      const initialCubeSide = 170;
+      // Linear shrinkage approx: dL/L0 ~ (1/3) * (dV/V0)
+      // Visual scaling: amplified for pedagogic visualization
+      const visualShrinkFactor = Math.abs(fracVolDeform) * 8000;
+      const currentSide = Math.max(50, initialCubeSide - Math.min(75, visualShrinkFactor));
+
+      const cx = w / 2;
+      const cy = h / 2;
+
+      // Original volume reference boundary (dashed)
+      ctxM2.save();
+      ctxM2.setLineDash([5, 5]);
+      ctxM2.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctxM2.lineWidth = 1.5;
+      ctxM2.strokeRect(cx - initialCubeSide / 2, cy - initialCubeSide / 2, initialCubeSide, initialCubeSide);
+
+      // Original label
+      ctxM2.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctxM2.font = '10px Inter';
+      ctxM2.textAlign = 'right';
+      ctxM2.fillText(`V₀ = ${m2Params.V0.toFixed(2)} L`, cx + initialCubeSide / 2, cy - initialCubeSide / 2 - 8);
+      ctxM2.restore();
+
+      // Deformed Submerged Body (Cube)
+      const halfCur = currentSide / 2;
+      const cubeGrad = ctxM2.createRadialGradient(cx, cy, 10, cx, cy, halfCur * 1.4);
+      cubeGrad.addColorStop(0, mat.color);
+      cubeGrad.addColorStop(1, '#0f172a');
+
+      ctxM2.fillStyle = cubeGrad;
+      ctxM2.strokeStyle = '#38bdf8';
+      ctxM2.lineWidth = 2;
+      ctxM2.beginPath();
+      ctxM2.roundRect(cx - halfCur, cy - halfCur, currentSide, currentSide, 8);
+      ctxM2.fill();
+      ctxM2.stroke();
+
+      // Central Volume Info
+      ctxM2.fillStyle = '#ffffff';
+      ctxM2.font = 'bold 12px Inter';
+      ctxM2.textAlign = 'center';
+      ctxM2.fillText(mat.name, cx, cy - 8);
+      ctxM2.font = '11px JetBrains Mono';
+      ctxM2.fillStyle = '#fef08a';
+      const actualV = m2Params.V0 * (1 + fracVolDeform);
+      ctxM2.fillText(`V = ${actualV.toFixed(5)} L`, cx, cy + 12);
+
+      // Perpendicular Inward Hydrostatic Pressure Vectors (on all 4 sides)
+      const numArrowsPerSide = 3;
+      const arrowLen = Math.min(45, 14 + (m2Params.deltaP / 100) * 31);
+      ctxM2.fillStyle = '#06b6d4';
+      ctxM2.strokeStyle = '#06b6d4';
+      ctxM2.lineWidth = 2.5;
+
+      function drawInwardArrow(startX, startY, endX, endY) {
+        ctxM2.beginPath();
+        ctxM2.moveTo(startX, startY);
+        ctxM2.lineTo(endX, endY);
+        ctxM2.stroke();
+        // Arrowhead pointing to (endX, endY)
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const headSize = 6;
+        ctxM2.beginPath();
+        ctxM2.moveTo(endX, endY);
+        ctxM2.lineTo(endX - headSize * Math.cos(angle - Math.PI / 6), endY - headSize * Math.sin(angle - Math.PI / 6));
+        ctxM2.lineTo(endX - headSize * Math.cos(angle + Math.PI / 6), endY - headSize * Math.sin(angle + Math.PI / 6));
+        ctxM2.closePath();
+        ctxM2.fill();
+      }
+
+      // Top arrows (pointing down)
+      for (let i = 0; i < numArrowsPerSide; i++) {
+        const ax = cx - halfCur + (i + 0.5) * (currentSide / numArrowsPerSide);
+        drawInwardArrow(ax, cy - halfCur - arrowLen, ax, cy - halfCur - 2);
+      }
+      // Bottom arrows (pointing up)
+      for (let i = 0; i < numArrowsPerSide; i++) {
+        const ax = cx - halfCur + (i + 0.5) * (currentSide / numArrowsPerSide);
+        drawInwardArrow(ax, cy + halfCur + arrowLen, ax, cy + halfCur + 2);
+      }
+      // Left arrows (pointing right)
+      for (let i = 0; i < numArrowsPerSide; i++) {
+        const ay = cy - halfCur + (i + 0.5) * (currentSide / numArrowsPerSide);
+        drawInwardArrow(cx - halfCur - arrowLen, ay, cx - halfCur - 2, ay);
+      }
+      // Right arrows (pointing left)
+      for (let i = 0; i < numArrowsPerSide; i++) {
+        const ay = cy - halfCur + (i + 0.5) * (currentSide / numArrowsPerSide);
+        drawInwardArrow(cx + halfCur + arrowLen, ay, cx + halfCur + 2, ay);
+      }
+
+      // Delta V indicator note
+      ctxM2.fillStyle = '#f43f5e';
+      ctxM2.font = 'bold 11px Inter';
+      ctxM2.textAlign = 'center';
+      ctxM2.fillText(`ΔV < 0 (Contracción Volumétrica)`, cx, cy + halfCur + arrowLen + 20);
+    }
+
+    /* =========================================================================
+     * MÓDULO 3: ESFUERZO DE CORTE (CIZALLADURA)
+     * ========================================================================= */
+    const canvasM3 = document.getElementById('canvasM3');
+    const ctxM3 = canvasM3.getContext('2d');
+
+    const m3MaterialData = {
+      bone_shear: { name: 'Hueso Cortical Humano', S: 10.0e9, color: '#f59e0b' },
+      cartilage: { name: 'Cartílago Articular', S: 0.002e9, color: '#38bdf8' },
+      steel_shear: { name: 'Acero Quirúrgico', S: 75.0e9, color: '#818cf8' },
+      aluminum: { name: 'Aluminio Estructural', S: 25.0e9, color: '#94a3b8' },
+      gelatin: { name: 'Tejido Blando / Gel Balístico', S: 0.0005e9, color: '#f43f5e' }
+    };
+
+    let m3Params = {
+      matKey: 'bone_shear',
+      F_par: 5000, // N
+      heightMm: 100, // mm
+      areaCm2: 25.0 // cm^2
+    };
+
+    function changeM3Material() {
+      m3Params.matKey = document.getElementById('m3MaterialSelect').value;
+      updateM3Simulation();
+    }
+
+    function updateM3Simulation() {
+      m3Params.F_par = parseFloat(document.getElementById('m3ForceSlider').value);
+      m3Params.heightMm = parseFloat(document.getElementById('m3HeightSlider').value);
+      m3Params.areaCm2 = parseFloat(document.getElementById('m3AreaSlider').value);
+
+      document.getElementById('m3ForceVal').innerText = m3Params.F_par.toLocaleString('es-AR') + ' N';
+      document.getElementById('m3HeightVal').innerText = m3Params.heightMm.toFixed(0) + ' mm';
+      document.getElementById('m3AreaVal').innerText = m3Params.areaCm2.toFixed(1) + ' cm²';
+
+      drawM3();
+    }
+
+    function drawM3() {
+      if (activeTab !== 'mod3') return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasM3.width / dpr;
+      const h = canvasM3.height / dpr;
+      ctxM3.clearRect(0, 0, w, h);
+
+      const mat = m3MaterialData[m3Params.matKey];
+      const areaM2 = m3Params.areaCm2 * 1e-4; // cm^2 to m^2
+      const heightM = m3Params.heightMm * 1e-3; // mm to m
+
+      const shearStress = m3Params.F_par / areaM2; // Pa
+      const shearStrain = shearStress / mat.S; // rad (x/h)
+      const deltaX_real = shearStrain * heightM; // m
+
+      // Update HUD
+      document.getElementById('m3-disp-tau').innerText = (shearStress / 1e6).toFixed(2) + ' MPa';
+      document.getElementById('m3-disp-gamma').innerText = shearStrain.toFixed(5) + ' rad';
+      document.getElementById('m3-disp-S').innerText = `S = ${(mat.S / 1e9).toFixed(3)} GPa`;
+      document.getElementById('m3DispXTag').innerText = (deltaX_real * 1000).toFixed(4) + ' mm';
+
+      // Visual scaling for displacement x
+      const baseBlockWidth = 200;
+      const visualBlockHeight = Math.min(180, Math.max(70, m3Params.heightMm * 0.9));
+      const visualShiftX = Math.min(130, shearStrain * 3500 + (m3Params.F_par > 0 ? 5 : 0));
+
+      const baseX = w / 2 - baseBlockWidth / 2 - visualShiftX / 2;
+      const baseY = h - 70; // fixed ground plane
+
+      // Ground plane / Clamped base
+      ctxM3.fillStyle = '#1e293b';
+      ctxM3.fillRect(w / 2 - 190, baseY, 380, 20);
+      ctxM3.strokeStyle = '#475569';
+      ctxM3.lineWidth = 2;
+      ctxM3.beginPath();
+      ctxM3.moveTo(w / 2 - 190, baseY);
+      ctxM3.lineTo(w / 2 + 190, baseY);
+      ctxM3.stroke();
+
+      // Mechanical base hatch marks (anchorage)
+      for (let x = w / 2 - 180; x < w / 2 + 180; x += 15) {
+        ctxM3.beginPath();
+        ctxM3.moveTo(x, baseY);
+        ctxM3.lineTo(x - 10, baseY + 12);
+        ctxM3.stroke();
+      }
+
+      // Undeformed dashed box reference
+      ctxM3.save();
+      ctxM3.setLineDash([4, 4]);
+      ctxM3.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+      ctxM3.strokeRect(baseX, baseY - visualBlockHeight, baseBlockWidth, visualBlockHeight);
+      ctxM3.restore();
+
+      // Shear Parallelogram:
+      // Bottom vertices: (baseX, baseY), (baseX + baseBlockWidth, baseY)
+      // Top vertices shifted by visualShiftX:
+      const p1 = { x: baseX, y: baseY };
+      const p2 = { x: baseX + baseBlockWidth, y: baseY };
+      const p3 = { x: baseX + baseBlockWidth + visualShiftX, y: baseY - visualBlockHeight };
+      const p4 = { x: baseX + visualShiftX, y: baseY - visualBlockHeight };
+
+      const polyGrad = ctxM3.createLinearGradient(p4.x, p4.y, p2.x, p2.y);
+      polyGrad.addColorStop(0, mat.color);
+      polyGrad.addColorStop(1, '#1e1b4b');
+
+      ctxM3.beginPath();
+      ctxM3.moveTo(p1.x, p1.y);
+      ctxM3.lineTo(p2.x, p2.y);
+      ctxM3.lineTo(p3.x, p3.y);
+      ctxM3.lineTo(p4.x, p4.y);
+      ctxM3.closePath();
+      ctxM3.fillStyle = polyGrad;
+      ctxM3.fill();
+      ctxM3.lineWidth = 2;
+      ctxM3.strokeStyle = '#818cf8';
+      ctxM3.stroke();
+
+      // Tangential Force Vector Arrow F_parallel on top face
+      if (m3Params.F_par > 0) {
+        const topMidX = (p4.x + p3.x) / 2;
+        const topMidY = p4.y;
+        const arrowLen = Math.min(95, 30 + (m3Params.F_par / 20000) * 65);
+
+        ctxM3.strokeStyle = '#f43f5e';
+        ctxM3.lineWidth = 4;
+        ctxM3.beginPath();
+        ctxM3.moveTo(topMidX - 30, topMidY);
+        ctxM3.lineTo(topMidX - 30 + arrowLen, topMidY);
+        ctxM3.stroke();
+
+        // Arrowhead pointing right
+        ctxM3.fillStyle = '#f43f5e';
+        ctxM3.beginPath();
+        ctxM3.moveTo(topMidX - 30 + arrowLen + 8, topMidY);
+        ctxM3.lineTo(topMidX - 30 + arrowLen, topMidY - 6);
+        ctxM3.lineTo(topMidX - 30 + arrowLen, topMidY + 6);
+        ctxM3.closePath();
+        ctxM3.fill();
+
+        ctxM3.fillStyle = '#fb7185';
+        ctxM3.font = 'bold 12px Inter';
+        ctxM3.textAlign = 'left';
+        ctxM3.fillText(`F∥ = ${m3Params.F_par} N`, topMidX - 25 + arrowLen + 12, topMidY + 4);
+      }
+
+      // Height dimension line (h)
+      const hDimX = baseX - 25;
+      ctxM3.strokeStyle = '#94a3b8';
+      ctxM3.lineWidth = 1.5;
+      ctxM3.beginPath();
+      ctxM3.moveTo(hDimX, baseY);
+      ctxM3.lineTo(hDimX, baseY - visualBlockHeight);
+      ctxM3.moveTo(hDimX - 5, baseY);
+      ctxM3.lineTo(hDimX + 5, baseY);
+      ctxM3.moveTo(hDimX - 5, baseY - visualBlockHeight);
+      ctxM3.lineTo(hDimX + 5, baseY - visualBlockHeight);
+      ctxM3.stroke();
+
+      ctxM3.fillStyle = '#cbd5e1';
+      ctxM3.font = '11px Inter';
+      ctxM3.textAlign = 'right';
+      ctxM3.fillText(`h = ${m3Params.heightMm} mm`, hDimX - 8, baseY - visualBlockHeight / 2 + 4);
+
+      // Lateral displacement measurement line (x)
+      if (visualShiftX > 2) {
+        const topRefX = baseX;
+        const topMovedX = p4.x;
+        const dispY = p4.y - 12;
+
+        ctxM3.strokeStyle = '#38bdf8';
+        ctxM3.lineWidth = 2;
+        ctxM3.beginPath();
+        ctxM3.moveTo(topRefX, dispY);
+        ctxM3.lineTo(topMovedX, dispY);
+        ctxM3.moveTo(topRefX, dispY - 4);
+        ctxM3.lineTo(topRefX, dispY + 4);
+        ctxM3.moveTo(topMovedX, dispY - 4);
+        ctxM3.lineTo(topMovedX, dispY + 4);
+        ctxM3.stroke();
+
+        ctxM3.fillStyle = '#38bdf8';
+        ctxM3.font = 'bold 11px Inter';
+        ctxM3.textAlign = 'center';
+        ctxM3.fillText(`x = ${(deltaX_real * 1000).toFixed(3)} mm`, (topRefX + topMovedX) / 2, dispY - 6);
+
+        // Angular arc phi / gamma
+        ctxM3.strokeStyle = '#facc15';
+        ctxM3.lineWidth = 1.5;
+        ctxM3.beginPath();
+        const arcRadius = 45;
+        const startAng = -Math.PI / 2;
+        const endAng = -Math.PI / 2 + Math.atan(visualShiftX / visualBlockHeight);
+        ctxM3.arc(p1.x, p1.y, arcRadius, startAng, endAng);
+        ctxM3.stroke();
+
+        ctxM3.fillStyle = '#facc15';
+        ctxM3.font = 'bold 10px JetBrains Mono';
+        ctxM3.fillText(`ϕ ≈ ${shearStrain.toFixed(4)} rad`, p1.x + 18, p1.y - 48);
+      }
+    }
+
+    /* =========================================================================
+     * MÓDULO 4: DIAGRAMA ESFUERZO-DEFORMACIÓN & HISTÉRESIS / PLASTICIDAD
+     * ========================================================================= */
+    const canvasM4 = document.getElementById('canvasM4');
+    const ctxM4 = canvasM4.getContext('2d');
+    const canvasSpecimen = document.getElementById('canvasSpecimen');
+    const ctxSpec = canvasSpecimen.getContext('2d');
+
+    // Material parameters for stress-strain curve
+    const m4Materials = {
+      ductile_steel: {
+        name: 'Acero Quirúrgico 316L',
+        Y: 200e9, // Pa
+        epsA: 0.002, // Proportional limit
+        sigmaA: 400e6, // Pa
+        epsB: 0.0035, // Elastic limit
+        sigmaB: 450e6,
+        epsYield: 0.015, // Yield plateau
+        sigmaYield: 470e6,
+        epsUTS: 0.07, // Ultimate tensile strength
+        sigmaUTS: 680e6,
+        epsRupture: 0.10, // Rupture point
+        sigmaRupture: 520e6
+      },
+      cortical_bone: {
+        name: 'Hueso Cortical Humano',
+        Y: 18e9,
+        epsA: 0.006,
+        sigmaA: 108e6,
+        epsB: 0.008,
+        sigmaB: 125e6,
+        epsYield: 0.012,
+        sigmaYield: 135e6,
+        epsUTS: 0.018,
+        sigmaUTS: 145e6,
+        epsRupture: 0.024,
+        sigmaRupture: 120e6
+      },
+      tendon_curve: {
+        name: 'Tendón / Ligamento (Bio)',
+        Y: 1.5e9,
+        epsA: 0.03, // Toe region ends
+        sigmaA: 35e6,
+        epsB: 0.045,
+        sigmaB: 50e6,
+        epsYield: 0.065,
+        sigmaYield: 65e6,
+        epsUTS: 0.09,
+        sigmaUTS: 75e6,
+        epsRupture: 0.11,
+        sigmaRupture: 60e6
+      }
+    };
+
+    let m4CurrentMat = 'ductile_steel';
+    let m4AppliedEpsilon = 0.005;
+    let m4MaxReachedEpsilon = 0.005;
+    let m4Unloading = false;
+    let m4UnloadProgress = 1.0; // 1 = fully loaded at current epsilon, 0 = fully unloaded
+    let m4PlasticResidual = 0.0;
+    let m4Fractured = false;
+
+    function changeM4Material() {
+      m4CurrentMat = document.getElementById('m4MaterialSelect').value;
+      const mat = m4Materials[m4CurrentMat];
+      // Adjust slider max according to material rupture
+      const slider = document.getElementById('m4EpsilonSlider');
+      slider.max = (mat.epsRupture * 1.15).toFixed(4);
+      slider.value = (mat.epsA * 1.2).toFixed(4);
+      resetM4Test();
+    }
+
+    function resetM4Test() {
+      m4AppliedEpsilon = parseFloat(document.getElementById('m4EpsilonSlider').value);
+      m4MaxReachedEpsilon = m4AppliedEpsilon;
+      m4Unloading = false;
+      m4UnloadProgress = 1.0;
+      m4PlasticResidual = 0.0;
+      m4Fractured = false;
+      updateM4Simulation();
+      showToast('Probeta reseteada a estado virgen sin esfuerzo previo.', '🧪');
+    }
+
+    function updateM4Simulation() {
+      m4AppliedEpsilon = parseFloat(document.getElementById('m4EpsilonSlider').value);
+      if (!m4Unloading) {
+        if (m4AppliedEpsilon > m4MaxReachedEpsilon) {
+          m4MaxReachedEpsilon = m4AppliedEpsilon;
+        }
+      }
+      drawM4();
+      drawSpecimen();
+    }
+
+    /* Calculate stress on standard backbone curve given strain eps */
+    function getCurveSigma(eps, mat) {
+      if (eps <= 0) return 0;
+      if (eps >= mat.epsRupture) return 0; // ruptured
+
+      // Region 1: Linear hooke up to point a
+      if (eps <= mat.epsA) {
+        return (mat.sigmaA / mat.epsA) * eps;
+      }
+      // Region 2: Slightly non-linear elastic up to point b
+      if (eps <= mat.epsB) {
+        const t = (eps - mat.epsA) / (mat.epsB - mat.epsA);
+        return mat.sigmaA + t * (mat.sigmaB - mat.sigmaA);
+      }
+      // Region 3: Yield plateau & hardening up to UTS
+      if (eps <= mat.epsUTS) {
+        const t = (eps - mat.epsB) / (mat.epsUTS - mat.epsB);
+        // Smooth plastic hardening power curve
+        return mat.sigmaB + (mat.sigmaUTS - mat.sigmaB) * Math.sin(t * Math.PI / 2);
+      }
+      // Region 4: Necking down to rupture
+      const t = (eps - mat.epsUTS) / (mat.epsRupture - mat.epsUTS);
+      return mat.sigmaUTS - (mat.sigmaUTS - mat.sigmaRupture) * t;
+    }
+
+    /* Unloading simulation cycle animation */
+    function triggerUnloadCycle() {
+      if (m4Fractured) {
+        showToast('La probeta ya se encuentra fracturada. Reinicie el ensayo.', '⚠️');
+        return;
+      }
+      if (m4Unloading) return; // already in cycle
+
+      const mat = m4Materials[m4CurrentMat];
+      m4Unloading = true;
+      let step = 0;
+      const totalSteps = 45;
+
+      const cycleInterval = setInterval(() => {
+        step++;
+        // Descend to 0 load
+        m4UnloadProgress = 1 - (step / totalSteps);
+        drawM4();
+        drawSpecimen();
+
+        if (step >= totalSteps) {
+          clearInterval(cycleInterval);
+          m4UnloadProgress = 0;
+
+          if (m4MaxReachedEpsilon <= mat.epsB) {
+            showToast('¡Descarga Completa! El cuerpo recuperó íntegramente su dimensión original (Régimen Elástico Reversible).', '✅');
+          } else {
+            showToast(`¡Deformación Plástica Permanente! Se observa deformación residual remanente εp = ${(m4PlasticResidual).toFixed(4)}.`, '📌');
+          }
+
+          // Allow reload after 1 second
+          setTimeout(() => {
+            m4Unloading = false;
+            m4UnloadProgress = 1.0;
+            drawM4();
+            drawSpecimen();
+          }, 1800);
+        }
+      }, 25);
+
+      playTone(350, 'sawtooth', 0.2, 0.05);
+    }
+
+    function drawM4() {
+      if (activeTab !== 'mod4') return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvasM4.width / dpr;
+      const h = canvasM4.height / dpr;
+      ctxM4.clearRect(0, 0, w, h);
+
+      const mat = m4Materials[m4CurrentMat];
+      const maxPlotEps = mat.epsRupture * 1.15;
+      const maxPlotSigma = mat.sigmaUTS * 1.25;
+
+      // Coordinate transforms
+      const padLeft = 65;
+      const padBottom = 45;
+      const padTop = 30;
+      const padRight = 140; // leave room for specimen inset
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      function toX(eps) {
+        return padLeft + (eps / maxPlotEps) * plotW;
+      }
+      function toY(sig) {
+        return (h - padBottom) - (sig / maxPlotSigma) * plotH;
+      }
+
+      // Background graph grid
+      ctxM4.strokeStyle = '#1e293b';
+      ctxM4.lineWidth = 1;
+      for (let s = 0; s <= maxPlotSigma; s += maxPlotSigma / 6) {
+        const gy = toY(s);
+        ctxM4.beginPath(); ctxM4.moveTo(padLeft, gy); ctxM4.lineTo(padLeft + plotW, gy); ctxM4.stroke();
+        // Y-axis ticks in MPa
+        ctxM4.fillStyle = '#64748b';
+        ctxM4.font = '10px JetBrains Mono';
+        ctxM4.textAlign = 'right';
+        ctxM4.fillText((s / 1e6).toFixed(0) + ' MPa', padLeft - 8, gy + 3);
+      }
+
+      for (let e = 0; e <= maxPlotEps; e += maxPlotEps / 6) {
+        const gx = toX(e);
+        ctxM4.beginPath(); ctxM4.moveTo(gx, padTop); ctxM4.lineTo(gx, h - padBottom); ctxM4.stroke();
+        // X-axis ticks
+        ctxM4.fillStyle = '#64748b';
+        ctxM4.font = '10px JetBrains Mono';
+        ctxM4.textAlign = 'center';
+        ctxM4.fillText(e.toFixed(3), gx, h - padBottom + 16);
+      }
+
+      // Axes lines
+      ctxM4.strokeStyle = '#94a3b8';
+      ctxM4.lineWidth = 2;
+      ctxM4.beginPath();
+      ctxM4.moveTo(padLeft, padTop);
+      ctxM4.lineTo(padLeft, h - padBottom);
+      ctxM4.lineTo(padLeft + plotW, h - padBottom);
+      ctxM4.stroke();
+
+      // Axis labels
+      ctxM4.fillStyle = '#f1f5f9';
+      ctxM4.font = 'bold 12px Inter';
+      ctxM4.textAlign = 'center';
+      ctxM4.fillText('Deformación Unitaria ε = ΔL / L₀ (adimensional)', padLeft + plotW / 2, h - 8);
+
+      ctxM4.save();
+      ctxM4.translate(18, padTop + plotH / 2);
+      ctxM4.rotate(-Math.PI / 2);
+      ctxM4.fillText('Esfuerzo Normal σ = F⊥ / A (Pa)', 0, 0);
+      ctxM4.restore();
+
+      // Draw Material Backbone Curve (Background reference)
+      ctxM4.beginPath();
+      ctxM4.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      ctxM4.lineWidth = 3;
+      const numPts = 120;
+      for (let i = 0; i <= numPts; i++) {
+        const e = (i / numPts) * mat.epsRupture;
+        const s = getCurveSigma(e, mat);
+        const px = toX(e);
+        const py = toY(s);
+        if (i === 0) ctxM4.moveTo(px, py);
+        else ctxM4.lineTo(px, py);
+      }
+      ctxM4.stroke();
+
+      // Highlight Key Characteristic Points (a, b, c, d)
+      const pts = [
+        { label: 'a (Prop.)', eps: mat.epsA, sig: mat.sigmaA, col: '#38bdf8' },
+        { label: 'b (Elástico)', eps: mat.epsB, sig: mat.sigmaB, col: '#4ade80' },
+        { label: 'c (Fluencia)', eps: mat.epsYield, sig: mat.sigmaYield, col: '#fbbf24' },
+        { label: 'd (Rotura)', eps: mat.epsRupture, sig: mat.sigmaRupture, col: '#f43f5e' }
+      ];
+
+      pts.forEach(p => {
+        const px = toX(p.eps);
+        const py = toY(p.sig);
+
+        // Marker ring
+        ctxM4.fillStyle = p.col;
+        ctxM4.beginPath();
+        ctxM4.arc(px, py, 4.5, 0, Math.PI * 2);
+        ctxM4.fill();
+        ctxM4.strokeStyle = '#0f172a';
+        ctxM4.lineWidth = 2;
+        ctxM4.stroke();
+
+        // Label
+        ctxM4.fillStyle = p.col;
+        ctxM4.font = 'bold 10px Inter';
+        ctxM4.textAlign = 'left';
+        ctxM4.fillText(p.label, px + 6, py - 6);
+      });
+
+      // Shaded Elastic Region background under x <= epsB
+      ctxM4.fillStyle = 'rgba(74, 222, 128, 0.08)';
+      ctxM4.fillRect(padLeft, padTop, toX(mat.epsB) - padLeft, plotH);
+      ctxM4.fillStyle = '#4ade80';
+      ctxM4.font = '9px Inter';
+      ctxM4.textAlign = 'left';
+      ctxM4.fillText('Zona Elástica', padLeft + 6, padTop + 14);
+
+      // Current State Calculations
+      m4Fractured = (m4MaxReachedEpsilon >= mat.epsRupture);
+      let activeEps = m4AppliedEpsilon;
+      let activeSigma = getCurveSigma(activeEps, mat);
+
+      // Handle Plastic Residual Offset
+      const hookeSlope = mat.sigmaA / mat.epsA; // Y effective
+      if (m4MaxReachedEpsilon > mat.epsB) {
+        const sigmaAtMax = getCurveSigma(m4MaxReachedEpsilon, mat);
+        m4PlasticResidual = m4MaxReachedEpsilon - (sigmaAtMax / hookeSlope);
+        if (m4PlasticResidual < 0) m4PlasticResidual = 0;
+      } else {
+        m4PlasticResidual = 0;
+      }
+
+      // If unloading is active, follow the unloading straight line!
+      let currentDrawPoint = { x: toX(activeEps), y: toY(activeSigma) };
+
+      if (m4Unloading) {
+        const sigmaAtMax = getCurveSigma(m4MaxReachedEpsilon, mat);
+        const unloadSigma = sigmaAtMax * m4UnloadProgress;
+        let unloadEps = (m4MaxReachedEpsilon <= mat.epsB)
+          ? (unloadSigma / hookeSlope)
+          : (m4PlasticResidual + (unloadSigma / hookeSlope));
+
+        activeSigma = unloadSigma;
+        activeEps = unloadEps;
+        currentDrawPoint = { x: toX(activeEps), y: toY(activeSigma) };
+
+        // Draw Unloading dashed line back towards axis
+        ctxM4.save();
+        ctxM4.setLineDash([4, 3]);
+        ctxM4.strokeStyle = '#f59e0b';
+        ctxM4.lineWidth = 2.5;
+        ctxM4.beginPath();
+        ctxM4.moveTo(toX(m4MaxReachedEpsilon), toY(sigmaAtMax));
+        ctxM4.lineTo(toX(m4PlasticResidual), toY(0));
+        ctxM4.stroke();
+        ctxM4.restore();
+      } else {
+        // Draw real-time active trajectory loaded up to activeEps
+        ctxM4.beginPath();
+        ctxM4.strokeStyle = '#f43f5e';
+        ctxM4.lineWidth = 4;
+        const activeSteps = 60;
+        for (let i = 0; i <= activeSteps; i++) {
+          const e = (i / activeSteps) * activeEps;
+          const s = getCurveSigma(e, mat);
+          const px = toX(e);
+          const py = toY(s);
+          if (i === 0) ctxM4.moveTo(px, py);
+          else ctxM4.lineTo(px, py);
+        }
+        ctxM4.stroke();
+      }
+
+      // Draw moving indicator point on curve
+      if (!m4Fractured) {
+        ctxM4.beginPath();
+        ctxM4.arc(currentDrawPoint.x, currentDrawPoint.y, 7, 0, Math.PI * 2);
+        ctxM4.fillStyle = '#ffffff';
+        ctxM4.fill();
+        ctxM4.lineWidth = 3;
+        ctxM4.strokeStyle = '#f43f5e';
+        ctxM4.stroke();
+      } else {
+        // Fracture marker
+        ctxM4.fillStyle = '#ef4444';
+        ctxM4.font = 'bold 14px Inter';
+        ctxM4.textAlign = 'center';
+        ctxM4.fillText('💥 FRACTURA', currentDrawPoint.x, currentDrawPoint.y - 12);
+      }
+
+      // Update HUD & State badge
+      document.getElementById('m4EpsilonVal').innerText = activeEps.toFixed(4);
+      document.getElementById('m4SigmaDisplay').innerText = (activeSigma / 1e6).toFixed(1) + ' MPa';
+      document.getElementById('m4PlasticRemDisplay').innerText = m4PlasticResidual.toFixed(4);
+
+      const stateBadge = document.getElementById('m4StateBadge');
+      const behaviorTag = document.getElementById('m4BehaviorTag');
+
+      if (m4Fractured) {
+        stateBadge.innerText = 'Ruptura Mecánica Total';
+        stateBadge.className = 'text-xs font-mono px-3 py-1 rounded bg-rose-950 text-rose-300 border border-rose-800';
+        behaviorTag.innerText = 'Colapso estructural irremediable';
+        behaviorTag.className = 'text-rose-400 font-semibold text-xs';
+      } else if (activeEps <= mat.epsA) {
+        stateBadge.innerText = 'Régimen de Hooke Proporcional (Punto a)';
+        stateBadge.className = 'text-xs font-mono px-3 py-1 rounded bg-sky-950 text-sky-300 border border-sky-800';
+        behaviorTag.innerText = '100% Retorno Elástico Instantáneo a L₀';
+        behaviorTag.className = 'text-emerald-400 font-semibold text-xs';
+      } else if (activeEps <= mat.epsB) {
+        stateBadge.innerText = 'Régimen Elástico No Lineal (Punto b)';
+        stateBadge.className = 'text-xs font-mono px-3 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800';
+        behaviorTag.innerText = 'Recupera L₀ íntegramente (Límite Elástico)';
+        behaviorTag.className = 'text-emerald-400 font-semibold text-xs';
+      } else {
+        stateBadge.innerText = 'Régimen Plástico Irreversible';
+        stateBadge.className = 'text-xs font-mono px-3 py-1 rounded bg-amber-950 text-amber-300 border border-amber-800';
+        behaviorTag.innerText = `Deformación Permanente: εp = ${m4PlasticResidual.toFixed(4)}`;
+        behaviorTag.className = 'text-amber-400 font-semibold text-xs';
+      }
+    }
+
+    function drawSpecimen() {
+      const dpr = window.devicePixelRatio || 1;
+      const sw = canvasSpecimen.width / dpr;
+      const sh = canvasSpecimen.height / dpr;
+      ctxSpec.clearRect(0, 0, sw, sh);
+
+      const mat = m4Materials[m4CurrentMat];
+      const eps = m4AppliedEpsilon;
+
+      // Base dog-bone specimen dimensions
+      const midY = sh / 2;
+      const baseLength = 70;
+      const stretchPixels = Math.min(32, eps * 300);
+      const neckThick = m4Fractured ? 0 : Math.max(3, 14 - (eps > mat.epsUTS ? (eps - mat.epsUTS) * 120 : 0));
+
+      const neckTag = document.getElementById('m4SpecimenNeckTag');
+      if (m4Fractured) {
+        neckTag.innerText = 'Fractura: Rota';
+        neckTag.className = 'text-[9px] font-mono text-rose-400 mt-1 block font-bold';
+      } else if (eps > mat.epsUTS) {
+        neckTag.innerText = 'Estricción: Visible (Cuello)';
+        neckTag.className = 'text-[9px] font-mono text-amber-400 mt-1 block font-bold';
+      } else {
+        neckTag.innerText = 'Estricción: Normal';
+        neckTag.className = 'text-[9px] font-mono text-slate-400 mt-1 block';
+      }
+
+      ctxSpec.fillStyle = '#64748b';
+      const gripW = 20;
+      const halfL = (baseLength + stretchPixels) / 2;
+
+      if (!m4Fractured) {
+        // Upper grip
+        ctxSpec.fillRect(sw / 2 - gripW / 2, midY - halfL - 10, gripW, 10);
+        // Lower grip
+        ctxSpec.fillRect(sw / 2 - gripW / 2, midY + halfL, gripW, 10);
+
+        // Specimen bar with slight necking
+        const spGrad = ctxSpec.createLinearGradient(sw / 2 - 8, 0, sw / 2 + 8, 0);
+        spGrad.addColorStop(0, '#38bdf8');
+        spGrad.addColorStop(0.5, '#f8fafc');
+        spGrad.addColorStop(1, '#0284c7');
+
+        ctxSpec.fillStyle = spGrad;
+        ctxSpec.beginPath();
+        ctxSpec.moveTo(sw / 2 - 8, midY - halfL);
+        ctxSpec.lineTo(sw / 2 + 8, midY - halfL);
+        ctxSpec.quadraticCurveTo(sw / 2 + neckThick / 2, midY, sw / 2 + 8, midY + halfL);
+        ctxSpec.lineTo(sw / 2 - 8, midY + halfL);
+        ctxSpec.quadraticCurveTo(sw / 2 - neckThick / 2, midY, sw / 2 - 8, midY - halfL);
+        ctxSpec.fill();
+      } else {
+        // Fractured halves separated
+        ctxSpec.fillStyle = '#ef4444';
+        // Upper broken half
+        ctxSpec.fillRect(sw / 2 - gripW / 2, midY - halfL - 16, gripW, 8);
+        ctxSpec.beginPath();
+        ctxSpec.moveTo(sw / 2 - 7, midY - halfL - 8);
+        ctxSpec.lineTo(sw / 2 + 7, midY - halfL - 8);
+        ctxSpec.lineTo(sw / 2 + 2, midY - 6);
+        ctxSpec.lineTo(sw / 2 - 2, midY - 6);
+        ctxSpec.closePath();
+        ctxSpec.fill();
+
+        // Lower broken half
+        ctxSpec.fillRect(sw / 2 - gripW / 2, midY + halfL + 8, gripW, 8);
+        ctxSpec.beginPath();
+        ctxSpec.moveTo(sw / 2 - 7, midY + halfL + 8);
+        ctxSpec.lineTo(sw / 2 + 7, midY + halfL + 8);
+        ctxSpec.lineTo(sw / 2 + 2, midY + 6);
+        ctxSpec.lineTo(sw / 2 - 2, midY + 6);
+        ctxSpec.closePath();
+        ctxSpec.fill();
+      }
+    }
+
+    function resizeAllCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+
+      // Module 1 Canvas
+      const rect1 = canvasM1.parentElement.getBoundingClientRect();
+      if (rect1.width > 0) {
+        canvasM1.width = rect1.width * dpr;
+        canvasM1.height = (rect1.height || 380) * dpr;
+        ctxM1.resetTransform ? ctxM1.resetTransform() : ctxM1.setTransform(1, 0, 0, 1, 0, 0);
+        ctxM1.scale(dpr, dpr);
+      }
+
+      // Module 2 Canvas
+      const rect2 = canvasM2.parentElement.getBoundingClientRect();
+      if (rect2.width > 0) {
+        canvasM2.width = rect2.width * dpr;
+        canvasM2.height = (rect2.height || 380) * dpr;
+        ctxM2.resetTransform ? ctxM2.resetTransform() : ctxM2.setTransform(1, 0, 0, 1, 0, 0);
+        ctxM2.scale(dpr, dpr);
+      }
+
+      // Module 3 Canvas
+      const rect3 = canvasM3.parentElement.getBoundingClientRect();
+      if (rect3.width > 0) {
+        canvasM3.width = rect3.width * dpr;
+        canvasM3.height = (rect3.height || 380) * dpr;
+        ctxM3.resetTransform ? ctxM3.resetTransform() : ctxM3.setTransform(1, 0, 0, 1, 0, 0);
+        ctxM3.scale(dpr, dpr);
+      }
+
+      // Module 4 Graph Canvas
+      const rect4 = canvasM4.parentElement.getBoundingClientRect();
+      if (rect4.width > 0) {
+        canvasM4.width = rect4.width * dpr;
+        canvasM4.height = (rect4.height || 400) * dpr;
+        ctxM4.resetTransform ? ctxM4.resetTransform() : ctxM4.setTransform(1, 0, 0, 1, 0, 0);
+        ctxM4.scale(dpr, dpr);
+      }
+
+      // Specimen Mini Canvas
+      if (canvasSpecimen.parentElement) {
+        const rectSpec = canvasSpecimen.parentElement.getBoundingClientRect();
+        if (rectSpec.width > 0) {
+          canvasSpecimen.width = rectSpec.width * dpr;
+          canvasSpecimen.height = (rectSpec.height || 96) * dpr;
+          ctxSpec.resetTransform ? ctxSpec.resetTransform() : ctxSpec.setTransform(1, 0, 0, 1, 0, 0);
+          ctxSpec.scale(dpr, dpr);
+        }
+      }
+
+      // Redraw active module
+      if (activeTab === 'mod1') drawM1();
+      else if (activeTab === 'mod2') drawM2();
+      else if (activeTab === 'mod3') drawM3();
+      else if (activeTab === 'mod4') { drawM4(); drawSpecimen(); }
+    }
+
+    window.addEventListener('resize', resizeAllCanvases);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Trigger KaTeX automatic formula rendering for static spans
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false
+        });
+      }
+
+      // Initial simulation updates
+      updateM1Simulation();
+      updateM2Simulation();
+      updateM3Simulation();
+      updateM4Simulation();
+
+      // Defer canvas sizing until layout paints
+      setTimeout(() => {
+        resizeAllCanvases();
+        showToast('Laboratorio de Elasticidad iniciado. Seleccione parámetros para simular.', '🎓');
+      }, 150);
+    });
+  
+  </script>
+</body>
+</html>
